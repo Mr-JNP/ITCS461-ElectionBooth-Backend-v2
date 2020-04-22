@@ -35,7 +35,7 @@ public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @GetMapping("/user/me")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public UserSummary getCurrentUser(@CurrentUser UserPrincipal currentUser) {
         UserSummary userSummary = new UserSummary(currentUser.getId(), currentUser.getUsername(), currentUser.getName());
         return userSummary;
@@ -65,6 +65,7 @@ public class UserController {
 
         return userProfile;
     }
+
 
     @GetMapping("/users/{username}/polls")
     public PagedResponse<PollResponse> getPollsCreatedBy(@PathVariable(value = "username") String username,
