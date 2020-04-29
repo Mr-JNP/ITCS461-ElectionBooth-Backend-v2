@@ -4,13 +4,8 @@ import com.example.electionbooth.model.audit.DateAudit;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "votes", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {
-                "poll_id",
-                "user_id"
-        })
-})
-public class Vote extends DateAudit {
+@Table(name = "choice_votes")
+public class ChoiceVote extends DateAudit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,8 +15,8 @@ public class Vote extends DateAudit {
     private Poll poll;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "choice_id", nullable = false)
+    private Choice choice;
 
     public Long getId() {
         return id;
@@ -39,11 +34,11 @@ public class Vote extends DateAudit {
         this.poll = poll;
     }
 
-    public User getUser() {
-        return user;
+    public Choice getChoice() {
+        return choice;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setChoice(Choice choice) {
+        this.choice = choice;
     }
 }

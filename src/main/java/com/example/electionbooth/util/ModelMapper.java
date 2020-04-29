@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class ModelMapper {
 
-    public static PollResponse mapPollToPollResponse(Poll poll, Map<Long, Long> choiceVotesMap, User creator, Long userVote) {
+    public static PollResponse mapPollToPollResponse(Poll poll, Map<Long, Long> choiceVotesMap, User creator) {
         PollResponse pollResponse = new PollResponse();
         pollResponse.setId(poll.getId());
         pollResponse.setQuestion(poll.getQuestion());
@@ -38,10 +38,6 @@ public class ModelMapper {
         pollResponse.setChoices(choiceResponses);
         UserSummary creatorSummary = new UserSummary(creator.getId(), creator.getUsername(), creator.getName());
         pollResponse.setCreatedBy(creatorSummary);
-
-        if(userVote != null) {
-            pollResponse.setSelectedChoice(userVote);
-        }
 
         long totalVotes = pollResponse.getChoices().stream().mapToLong(ChoiceResponse::getVoteCount).sum();
         pollResponse.setTotalVotes(totalVotes);

@@ -15,7 +15,6 @@ public class PollResponse {
     private Boolean isExpired;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private Long selectedChoice;
     private Long totalVotes;
 
     public Long getId() {
@@ -73,14 +72,6 @@ public class PollResponse {
 
     public void setExpired(Boolean expired) {
         isExpired = expired;
-    }
-
-    public Long getSelectedChoice() {
-        return selectedChoice;
-    }
-
-    public void setSelectedChoice(Long selectedChoice) {
-        this.selectedChoice = selectedChoice;
     }
 
     public Long getTotalVotes() {
