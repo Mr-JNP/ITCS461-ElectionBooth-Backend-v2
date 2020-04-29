@@ -1,4 +1,4 @@
-# ITCS461-ElectionBooth-BackEnd
+# ITCS461-ElectionBooth-Backend-v2
 Term Project of ITCS461 - Computer and Communication Security
 
 ## README
