@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /*
-    This class thrown error at unauthorized users
+    This class thrown 401 error at unauthorized users
  */
 
 @Component

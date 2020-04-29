@@ -30,7 +30,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 // You can use following three types of annotations for securing your methods -
 // securedEnabled: It enables the @Secured annotation
 // using which you can protect your controller/service methods like so -
-//
+
 @EnableGlobalMethodSecurity(
         securedEnabled = true,
         jsr250Enabled = true,
