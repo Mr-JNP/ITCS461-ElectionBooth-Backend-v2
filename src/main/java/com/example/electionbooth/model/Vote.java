@@ -20,10 +20,6 @@ public class Vote extends DateAudit {
     private Poll poll;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "choice_id", nullable = false)
-    private Choice choice;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
@@ -41,14 +37,6 @@ public class Vote extends DateAudit {
 
     public void setPoll(Poll poll) {
         this.poll = poll;
-    }
-
-    public Choice getChoice() {
-        return choice;
-    }
-
-    public void setChoice(Choice choice) {
-        this.choice = choice;
     }
 
     public User getUser() {

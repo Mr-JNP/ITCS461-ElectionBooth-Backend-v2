@@ -7,6 +7,7 @@ import com.example.electionbooth.payload.PagedResponse;
 import com.example.electionbooth.payload.PollRequest;
 import com.example.electionbooth.payload.PollResponse;
 import com.example.electionbooth.payload.VoteRequest;
+import com.example.electionbooth.repository.ChoiceVoteRepository;
 import com.example.electionbooth.repository.PollRepository;
 import com.example.electionbooth.repository.UserRepository;
 import com.example.electionbooth.repository.VoteRepository;
@@ -40,6 +41,9 @@ public class PollService {
     private VoteRepository voteRepository;
 
     @Autowired
+    private ChoiceVoteRepository choiceVoteRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(PollService.class);
@@ -59,14 +63,12 @@ public class PollService {
         // Map Polls to PollResponses containing vote counts and poll creator details
         List<Long> pollIds = polls.map(Poll::getId).getContent();
         Map<Long, Long> choiceVoteCountMap = getChoiceVoteCountMap(pollIds);
-        Map<Long, Long> pollUserVoteMap = getPollUserVoteMap(currentUser, pollIds);
         Map<Long, User> creatorMap = getPollCreatorMap(polls.getContent());
 
         List<PollResponse> pollResponses = polls.map(poll -> {
             return ModelMapper.mapPollToPollResponse(poll,
                     choiceVoteCountMap,
-                    creatorMap.get(poll.getCreatedBy()),
-                    pollUserVoteMap == null ? null : pollUserVoteMap.getOrDefault(poll.getId(), null));
+                    creatorMap.get(poll.getCreatedBy()));
         }).getContent();
 
         return new PagedResponse<>(pollResponses, polls.getNumber(),
@@ -91,13 +93,11 @@ public class PollService {
         // Map Polls to PollResponses containing vote counts and poll creator details
         List<Long> pollIds = polls.map(Poll::getId).getContent();
         Map<Long, Long> choiceVoteCountMap = getChoiceVoteCountMap(pollIds);
-        Map<Long, Long> pollUserVoteMap = getPollUserVoteMap(currentUser, pollIds);
 
         List<PollResponse> pollResponses = polls.map(poll -> {
             return ModelMapper.mapPollToPollResponse(poll,
                     choiceVoteCountMap,
-                    user,
-                    pollUserVoteMap == null ? null : pollUserVoteMap.getOrDefault(poll.getId(), null));
+                    user);
         }).getContent();
 
         return new PagedResponse<>(pollResponses, polls.getNumber(),
@@ -128,14 +128,12 @@ public class PollService {
 
         // Map Polls to PollResponses containing vote counts and poll creator details
         Map<Long, Long> choiceVoteCountMap = getChoiceVoteCountMap(pollIds);
-        Map<Long, Long> pollUserVoteMap = getPollUserVoteMap(currentUser, pollIds);
         Map<Long, User> creatorMap = getPollCreatorMap(polls);
 
         List<PollResponse> pollResponses = polls.stream().map(poll -> {
             return ModelMapper.mapPollToPollResponse(poll,
                     choiceVoteCountMap,
-                    creatorMap.get(poll.getCreatedBy()),
-                    pollUserVoteMap == null ? null : pollUserVoteMap.getOrDefault(poll.getId(), null));
+                    creatorMap.get(poll.getCreatedBy()));
         }).collect(Collectors.toList());
 
         return new PagedResponse<>(pollResponses, userVotedPollIds.getNumber(), userVotedPollIds.getSize(), userVotedPollIds.getTotalElements(), userVotedPollIds.getTotalPages(), userVotedPollIds.isLast());
@@ -164,7 +162,7 @@ public class PollService {
                 () -> new ResourceNotFoundException("Poll", "id", pollId));
 
         // Retrieve Vote Counts of every choice belonging to the current poll
-        List<ChoiceVoteCount> votes = voteRepository.countByPollIdGroupByChoiceId(pollId);
+        List<ChoiceVoteCount> votes = choiceVoteRepository.countByPollIdGroupByChoiceId(pollId);
 
         Map<Long, Long> choiceVotesMap = votes.stream()
                 .collect(Collectors.toMap(ChoiceVoteCount::getChoiceId, ChoiceVoteCount::getVoteCount));
@@ -179,8 +177,7 @@ public class PollService {
             userVote = voteRepository.findByUserIdAndPollId(currentUser.getId(), pollId);
         }
 
-        return ModelMapper.mapPollToPollResponse(poll, choiceVotesMap,
-                creator, userVote != null ? userVote.getChoice().getId(): null);
+        return ModelMapper.mapPollToPollResponse(poll, choiceVotesMap, creator);
     }
 
     public PollResponse castVoteAndGetUpdatedPoll(Long pollId, VoteRequest voteRequest, UserPrincipal currentUser) {
@@ -201,10 +198,14 @@ public class PollService {
         Vote vote = new Vote();
         vote.setPoll(poll);
         vote.setUser(user);
-        vote.setChoice(selectedChoice);
+
+        ChoiceVote choiceVote = new ChoiceVote();
+        choiceVote.setPoll(poll);
+        choiceVote.setChoice(selectedChoice);
 
         try {
             vote = voteRepository.save(vote);
+            choiceVote = choiceVoteRepository.save(choiceVote);
         } catch (DataIntegrityViolationException ex) {
             logger.info("User {} has already voted in Poll {}", currentUser.getId(), pollId);
             throw new BadRequestException("Sorry! You have already cast your vote in this poll");
@@ -213,7 +214,7 @@ public class PollService {
         //-- Vote Saved, Return the updated Poll Response now --
 
         // Retrieve Vote Counts of every choice belonging to the current poll
-        List<ChoiceVoteCount> votes = voteRepository.countByPollIdGroupByChoiceId(pollId);
+        List<ChoiceVoteCount> votes = choiceVoteRepository.countByPollIdGroupByChoiceId(pollId);
 
         Map<Long, Long> choiceVotesMap = votes.stream()
                 .collect(Collectors.toMap(ChoiceVoteCount::getChoiceId, ChoiceVoteCount::getVoteCount));
@@ -222,7 +223,7 @@ public class PollService {
         User creator = userRepository.findById(poll.getCreatedBy())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", poll.getCreatedBy()));
 
-        return ModelMapper.mapPollToPollResponse(poll, choiceVotesMap, creator, vote.getChoice().getId());
+        return ModelMapper.mapPollToPollResponse(poll, choiceVotesMap, creator);
     }
 
 
@@ -238,24 +239,12 @@ public class PollService {
 
     private Map<Long, Long> getChoiceVoteCountMap(List<Long> pollIds) {
         // Retrieve Vote Counts of every Choice belonging to the given pollIds
-        List<ChoiceVoteCount> votes = voteRepository.countByPollIdInGroupByChoiceId(pollIds);
+        List<ChoiceVoteCount> votes = choiceVoteRepository.countByPollIdInGroupByChoiceId(pollIds);
 
         Map<Long, Long> choiceVotesMap = votes.stream()
                 .collect(Collectors.toMap(ChoiceVoteCount::getChoiceId, ChoiceVoteCount::getVoteCount));
 
         return choiceVotesMap;
-    }
-
-    private Map<Long, Long> getPollUserVoteMap(UserPrincipal currentUser, List<Long> pollIds) {
-        // Retrieve Votes done by the logged in user to the given pollIds
-        Map<Long, Long> pollUserVoteMap = null;
-        if(currentUser != null) {
-            List<Vote> userVotes = voteRepository.findByUserIdAndPollIdIn(currentUser.getId(), pollIds);
-
-            pollUserVoteMap = userVotes.stream()
-                    .collect(Collectors.toMap(vote -> vote.getPoll().getId(), vote -> vote.getChoice().getId()));
-        }
-        return pollUserVoteMap;
     }
 
     Map<Long, User> getPollCreatorMap(List<Poll> polls) {

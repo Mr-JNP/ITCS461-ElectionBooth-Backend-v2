@@ -1,6 +1,5 @@
 package com.example.electionbooth.repository;
 
-import com.example.electionbooth.model.ChoiceVoteCount;
 import com.example.electionbooth.model.Vote;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,12 +11,6 @@ import java.util.List;
 
 @Repository
 public interface VoteRepository extends JpaRepository<Vote, Long> {
-    @Query("SELECT NEW com.example.electionbooth.model.ChoiceVoteCount(v.choice.id, count(v.id)) FROM Vote v WHERE v.poll.id in :pollIds GROUP BY v.choice.id")
-    List<ChoiceVoteCount> countByPollIdInGroupByChoiceId(@Param("pollIds") List<Long> pollIds);
-
-    @Query("SELECT NEW com.example.electionbooth.model.ChoiceVoteCount(v.choice.id, count(v.id)) FROM Vote v WHERE v.poll.id = :pollId GROUP BY v.choice.id")
-    List<ChoiceVoteCount> countByPollIdGroupByChoiceId(@Param("pollId") Long pollId);
-
     @Query("SELECT v FROM Vote v where v.user.id = :userId and v.poll.id in :pollIds")
     List<Vote> findByUserIdAndPollIdIn(@Param("userId") Long userId, @Param("pollIds") List<Long> pollIds);
 
