@@ -99,6 +99,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest()
                 .authenticated();
 
+        http
+                .requiresChannel()
+                .anyRequest()
+                .requiresSecure();
+
         // Add our custom JWT security filter
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
